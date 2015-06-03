@@ -6,9 +6,9 @@ use winapi::winnt::{GENERIC_READ, GENERIC_WRITE, FILE_ATTRIBUTE_NORMAL};
 use winapi::fileapi::OPEN_ALWAYS;
 use std::os::windows::prelude::*;
 use std::ffi::OsStr;
-use kernel32::{CreateFileW, CloseHandle, ReadFile};
+use kernel32::{CreateFileW, CloseHandle, ReadFile, WriteFile, FlushFileBuffers};
 
-use std::io::{Read, Error};
+use std::io::{Read, Write, Error};
 
 pub struct File(HANDLE);
 
@@ -26,6 +26,32 @@ impl Read for File {
             unimplemented!()
         } else {
             Ok(read as usize)
+        }
+    }
+}
+
+impl Write for File {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {
+        let mut write = 0;
+        let buf_len = buf.len() as DWORD;
+        if 0 == unsafe {
+            WriteFile(self.0,
+                buf.as_ptr() as *mut _,
+                buf_len,
+                &mut write,
+                0 as *mut _)
+        } {
+            unimplemented!()
+        } else {
+            Ok(write as usize)
+        }
+    }
+
+    fn flush(&mut self) -> Result<(), Error> {
+        if 0 == unsafe { FlushFileBuffers(self.0) } {
+            unimplemented!()
+        } else {
+            Ok(())
         }
     }
 }
